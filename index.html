@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Тысяча">
+<meta name="theme-color" content="#0b5d34">
+<title>Тысяча</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+  <header id="topbar">
+    <button id="btnMenu" class="icon-btn" aria-label="Меню">☰</button>
+    <div id="info"><span id="infoBid"></span><span id="infoTrump"></span></div>
+    <button id="btnScore" class="icon-btn" aria-label="Счёт">📋</button>
+  </header>
+
+  <section id="table">
+    <div class="opp" id="opp1"><div class="ohand"></div><div class="plate"><b class="name"></b><span class="score"></span><span class="tag"></span></div></div>
+    <div class="opp" id="opp2"><div class="ohand"></div><div class="plate"><b class="name"></b><span class="score"></span><span class="tag"></span></div></div>
+    <div id="center">
+      <div id="talon"></div>
+      <div id="trick"></div>
+      <div id="bubble1" class="bubble"></div>
+      <div id="bubble2" class="bubble"></div>
+      <div id="bubble0" class="bubble"></div>
+      <div id="toast"></div>
+    </div>
+  </section>
+
+  <section id="me">
+    <div id="panel"></div>
+    <div class="plate me-plate"><b class="name"></b><span class="score"></span><span class="tag"></span></div>
+    <div id="hand"></div>
+  </section>
+</div>
+
+<div id="modal" class="hidden"><div class="sheet"><div id="modalBody"></div></div></div>
+
+<script src="engine.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
