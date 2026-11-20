@@ -1,5 +1,5 @@
 :root {
-  --cw: min(17vw, 78px);
+  --cw: min(19vw, 82px);
   --ch: calc(var(--cw) * 1.42);
   --felt: #0b6b3c;
   --felt2: #064a29;
@@ -92,7 +92,7 @@ body {
   box-shadow: 0 2px 5px rgba(0,0,0,.45); z-index: 2;
 }
 .pair-badge {
-  top: -13px; left: 2px;
+  top: -16px; left: 2px;
   background: #f3c84b; color: #2b2100; border: 1px solid #fff3c4;
 }
 .pair-badge.ready {
@@ -111,6 +111,24 @@ body {
   position: relative; overflow: hidden;
 }
 .card.red { color: var(--red); }
+.card-corner {
+  position: absolute; display: flex; flex-direction: column; align-items: center;
+  padding: 2px 3px 1px; border-radius: 5px;
+  background: rgba(246, 237, 217, 0.95);
+  box-shadow: 0 1px 2px rgba(0,0,0,.18);
+  pointer-events: none; line-height: 1; z-index: 1;
+}
+.card-corner.tl { top: 2px; left: 2px; }
+.card-corner.br { bottom: 2px; right: 2px; transform: rotate(180deg); }
+.card-corner .c-r {
+  font-size: calc(var(--cw) * 0.25); font-weight: 900; line-height: 0.95;
+}
+.card-corner .c-r.ten {
+  font-size: calc(var(--cw) * 0.22); letter-spacing: -0.06em;
+}
+.card-corner .c-s {
+  font-size: calc(var(--cw) * 0.21); line-height: 0.95; margin-top: 1px;
+}
 .card.back {
   background-image: url("cards/back.jpg");
 }

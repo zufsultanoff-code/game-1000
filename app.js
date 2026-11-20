@@ -49,6 +49,19 @@
     el.dataset.id = c.id;
     el.style.backgroundImage = 'url("cards/' + c.id + '.jpg")';
     el.setAttribute('aria-label', RL[c.r] + ' ' + sym(c.s));
+    ['tl', 'br'].forEach(function (pos) {
+      var corner = document.createElement('span');
+      corner.className = 'card-corner ' + pos;
+      var rk = document.createElement('span');
+      rk.className = 'c-r' + (c.r === '10' ? ' ten' : '');
+      rk.textContent = RL[c.r];
+      var stSpan = document.createElement('span');
+      stSpan.className = 'c-s';
+      stSpan.textContent = sym(c.s);
+      corner.appendChild(rk);
+      corner.appendChild(stSpan);
+      el.appendChild(corner);
+    });
     return el;
   }
   function backEl() { var el = document.createElement('div'); el.className = 'card back'; return el; }
