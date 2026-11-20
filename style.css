@@ -173,3 +173,43 @@ table.score td small { display: block; font-size: 11px; color: #777; }
 table.score tr.total td { font-weight: 800; border-top: 2px solid #333; }
 .menu-list .btn { width: 100%; margin-bottom: 10px; }
 .big-title { text-align: center; font-size: 40px; font-weight: 900; margin: 6px 0 2px; color: #0b6b3c; }
+
+.btn:focus, .icon-btn:focus, .sheet input:focus, .sheet select:focus, .sheet summary:focus {
+  outline: 3px solid #fff;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 5px var(--gold), 0 6px 16px rgba(0,0,0,.55);
+}
+#hand .card.legal:focus {
+  outline: none;
+  transform: translateY(-20px) scale(1.06);
+  box-shadow: 0 0 0 3px #fff, 0 0 0 7px var(--gold), 0 10px 24px rgba(0,0,0,.65);
+  z-index: 40 !important;
+}
+
+@media (orientation: landscape) and (min-width: 640px) {
+  :root {
+    --cw: min(10.5vh, 8.5vw, 108px);
+  }
+  #topbar { padding: 8px 18px; }
+  .opp { width: 27%; top: 6px; }
+  #opp1 { left: 1.5%; }
+  #opp2 { right: 1.5%; }
+  #center {
+    top: 6px;
+    bottom: 0;
+    left: 26%;
+    right: 26%;
+  }
+  #talon, #trick { top: 48%; }
+  #bubble1 { left: 2%; top: 4px; }
+  #bubble2 { right: 2%; top: 4px; }
+  #me { gap: 4px; padding-bottom: 10px; }
+  #panel { min-height: 44px; }
+  #modal { align-items: center; }
+  .sheet {
+    border-radius: 20px;
+    max-width: 640px;
+    max-height: 86vh;
+    padding: 20px 22px;
+  }
+}

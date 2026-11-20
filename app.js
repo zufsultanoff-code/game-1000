@@ -157,6 +157,16 @@
         }
       }
       if (sel === c.id) el.classList.add('sel');
+      if ((playing && legal[c.id]) || (st.phase === 'give' && st.declarer === 0)) {
+        el.tabIndex = 0;
+        el.setAttribute('role', 'button');
+        el.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onCard(c.id);
+          }
+        });
+      }
       el.addEventListener('click', function () { onCard(c.id); });
       hd.appendChild(el);
     });
@@ -200,6 +210,7 @@
     if (!st) return;
     renderOpp(1); renderOpp(2);
     renderCenter(); renderHand(); renderInfo(); renderPanel();
+    focusPrimaryControl();
   }
 
   /* ---------- action panel ---------- */
@@ -444,13 +455,48 @@
   }
 
   /* ---------- modals ---------- */
+  var lastFocusKey = '';
+  function focusPrimaryControl(force) {
+    if (!$('#modal').classList.contains('hidden') || busy) return;
+    var fk = st ? (st.phase + ':' + st.turn + ':' + st.declarer + ':' + (sel || '')) : '';
+    if (fk !== lastFocusKey) {
+      lastFocusKey = fk;
+      force = true;
+    }
+    var ae = document.activeElement;
+    if (!force && ae && ae !== document.body && $('#app').contains(ae) && document.body.contains(ae) && !ae.disabled) {
+      return;
+    }
+    if (st && st.phase === 'give' && st.declarer === 0 && sel) {
+      var giveBtn = $('#panel button:not(:disabled)');
+      if (giveBtn) { giveBtn.focus(); return; }
+    }
+    var cards = $('#hand').querySelectorAll('.card.legal');
+    if (cards.length && ((st && st.phase === 'play' && st.turn === 0) || (st && st.phase === 'give' && st.declarer === 0 && !sel))) {
+      var targetCard = $('#hand .card.sel') || cards[0];
+      targetCard.focus();
+      return;
+    }
+    var panelBtn = $('#panel button:not(.alt):not(.danger):not(:disabled)') || $('#panel button:not(:disabled)');
+    if (panelBtn) { panelBtn.focus(); return; }
+    var topBtn = $('#topbar button:not(:disabled)');
+    if (topBtn) topBtn.focus();
+  }
+
   function openModal(html, wire, dismissable) {
     $('#modalBody').innerHTML = html;
     $('#modal').classList.remove('hidden');
     $('#modal').dataset.dismiss = dismissable ? '1' : '';
     if (wire) wire($('#modalBody'));
+    setTimeout(function () {
+      var primary = $('#modalBody').querySelector('#mNext, #mOk, #mResume, #mSave, #mNo, button, input, select');
+      if (primary) primary.focus();
+    }, 30);
   }
-  function closeModal() { $('#modal').classList.add('hidden'); }
+  function closeModal() {
+    $('#modal').classList.add('hidden');
+    focusPrimaryControl(true);
+  }
   function on(root, sel, fn) { var el = root.querySelector(sel); if (el) el.addEventListener('click', fn); }
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
 
@@ -500,19 +546,22 @@
   }
 
   function showMenu() {
+    var exitBtn = window.AndroidBridge ? '<button class="btn danger" id="mExit">Выход из игры</button>' : '';
     openModal('<div class="big-title">1000</div><p style="text-align:center;margin-top:0">Тысяча — карточная игра</p>' +
       '<div class="menu-list">' +
       '<button class="btn" id="mResume">Продолжить</button>' +
       '<button class="btn alt" id="mNew">Новая игра</button>' +
       '<button class="btn alt" id="mLast">Последняя взятка</button>' +
       '<button class="btn alt" id="mSet">Настройки</button>' +
-      '<button class="btn alt" id="mRules">Правила</button></div>',
+      '<button class="btn alt" id="mRules">Правила</button>' +
+      exitBtn + '</div>',
       function (r) {
         on(r, '#mResume', closeModal);
         on(r, '#mNew', function () { confirmBox('Начать новую игру? Текущая будет потеряна.', function () { newGame(); }); });
         on(r, '#mLast', showLastTrick);
         on(r, '#mSet', showSettings);
         on(r, '#mRules', showRules);
+        if (window.AndroidBridge) on(r, '#mExit', function () { window.AndroidBridge.exitApp(); });
       }, true);
   }
 
@@ -616,6 +665,95 @@
   function showRulesOnce() {
     if (!localStorage.getItem('thousand.seenRules')) { localStorage.setItem('thousand.seenRules', '1'); showRules(); }
   }
+
+  window.toggleTvMenu = function () {
+    if (!$('#modal').classList.contains('hidden')) closeModal();
+    else showMenu();
+  };
+  window.handleAndroidBack = function () {
+    var m = $('#modal');
+    if (!m.classList.contains('hidden')) {
+      if (m.dataset.dismiss) { closeModal(); return true; }
+      var btn = $('#modalBody').querySelector('#mNext, #mNew, #mOk');
+      if (btn) { btn.click(); return true; }
+      return true;
+    }
+    showMenu();
+    return true;
+  };
+
+  window.addEventListener('keydown', function (e) {
+    var key = e.key;
+    var modal = $('#modal');
+    var modalOpen = !modal.classList.contains('hidden');
+    var ae = document.activeElement;
+    var isTextInput = ae && ae.tagName === 'INPUT' && ae.type === 'text';
+
+    if (modalOpen) {
+      if (key === 'Escape' || (key === 'Backspace' && !isTextInput)) {
+        e.preventDefault();
+        window.handleAndroidBack();
+        return;
+      }
+      if (key === 'ArrowLeft' || key === 'ArrowRight' || key === 'ArrowUp' || key === 'ArrowDown') {
+        if ((key === 'ArrowLeft' || key === 'ArrowRight') && isTextInput) return;
+        var items = Array.prototype.slice.call(
+          $('#modalBody').querySelectorAll('button:not(:disabled), input, select, summary')
+        );
+        if (!items.length) return;
+        e.preventDefault();
+        if (items.length === 1 && (key === 'ArrowUp' || key === 'ArrowDown')) {
+          var sheet = $('#modal .sheet');
+          if (sheet) sheet.scrollTop += (key === 'ArrowDown' ? 120 : -120);
+          return;
+        }
+        var idx = items.indexOf(ae);
+        var nextIdx = idx < 0 ? 0
+          : (key === 'ArrowRight' || key === 'ArrowDown') ? (idx + 1) % items.length
+          : (idx - 1 + items.length) % items.length;
+        items[nextIdx].focus();
+        if (items[nextIdx].scrollIntoView) items[nextIdx].scrollIntoView({ block: 'nearest' });
+      }
+      return;
+    }
+
+    if (key === 'Escape' || key === 'Backspace') {
+      e.preventDefault();
+      showMenu();
+      return;
+    }
+    if (key !== 'ArrowLeft' && key !== 'ArrowRight' && key !== 'ArrowUp' && key !== 'ArrowDown') return;
+
+    e.preventDefault();
+    var rows = [
+      Array.prototype.slice.call(document.querySelectorAll('#topbar button:not(:disabled)')),
+      Array.prototype.slice.call(document.querySelectorAll('#panel button:not(:disabled)')),
+      Array.prototype.slice.call(document.querySelectorAll('#hand .card.legal'))
+    ].filter(function (r) { return r.length > 0; });
+    if (!rows.length) return;
+
+    var rIdx = -1, cIdx = -1;
+    for (var i = 0; i < rows.length; i++) {
+      var j = rows[i].indexOf(ae);
+      if (j >= 0) { rIdx = i; cIdx = j; break; }
+    }
+    if (rIdx < 0) {
+      focusPrimaryControl(true);
+      return;
+    }
+    if (key === 'ArrowLeft') {
+      rows[rIdx][(cIdx - 1 + rows[rIdx].length) % rows[rIdx].length].focus();
+    } else if (key === 'ArrowRight') {
+      rows[rIdx][(cIdx + 1) % rows[rIdx].length].focus();
+    } else if (key === 'ArrowUp' || key === 'ArrowDown') {
+      var nr = key === 'ArrowUp' ? Math.max(0, rIdx - 1) : Math.min(rows.length - 1, rIdx + 1);
+      if (nr !== rIdx) {
+        var ratio = rows[rIdx].length > 1 ? cIdx / (rows[rIdx].length - 1) : 0.5;
+        var nc = Math.round(ratio * (rows[nr].length - 1));
+        rows[nr][nc].focus();
+      }
+    }
+  });
 
   if ('serviceWorker' in navigator && location.protocol !== 'file:') {
     var hadCtrl = !!navigator.serviceWorker.controller;
