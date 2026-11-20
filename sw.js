@@ -1,5 +1,5 @@
 /* Offline cache for the Thousand web app */
-var CACHE = 'thousand-v5';
+var CACHE = 'thousand-v6';
 var FILES = ['./', './index.html', './style.css', './engine.js', './app.js', './manifest.webmanifest',
   './icons/icon-180.png', './icons/icon-192.png', './icons/icon-512.png',
   './cards/back.jpg',
@@ -9,7 +9,14 @@ var FILES = ['./', './index.html', './style.css', './engine.js', './app.js', './
   './cards/9H.jpg', './cards/10H.jpg', './cards/JH.jpg', './cards/QH.jpg', './cards/KH.jpg', './cards/AH.jpg'];
 
 self.addEventListener('install', function (e) {
-  e.waitUntil(caches.open(CACHE).then(function (c) { return c.addAll(FILES); }).then(function () { return self.skipWaiting(); }));
+  e.waitUntil(caches.open(CACHE).then(function (c) {
+    return Promise.all(FILES.map(function (u) {
+      return fetch(new Request(u, { cache: 'reload' })).then(function (r) {
+        if (!r || !r.ok) throw new Error('Cache fetch failed: ' + u);
+        return c.put(u, r);
+      });
+    }));
+  }).then(function () { return self.skipWaiting(); }));
 });
 self.addEventListener('activate', function (e) {
   e.waitUntil(caches.keys().then(function (keys) {
