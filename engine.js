@@ -17,7 +17,8 @@
     pairOver120: true,   // bid above 120 requires K+Q pair
     pairNeedTrick: true, // can announce pair only after taking a trick
     concedeGive: 60,     // points to each opponent when declarer gives up
-    aiSpeed: 650
+    aiSpeed: 650,
+    hints: true          // show card badges, winning card highlights, deal score/hand eval
   };
 
   function makeCard(s, r) { return { s: s, r: r, id: r + s }; }
@@ -482,13 +483,47 @@
     return pickMin(legal, function (c) { return dumpCost(st, p, c); }).id;
   }
 
+  /* ---------- hints ---------- */
+  function dealPoints(st, p) {
+    return points((st.taken && st.taken[p]) || []) + ((st.bonus && st.bonus[p]) || 0);
+  }
+
+  function winningCards(st, p) {
+    if (st.phase !== 'play' || st.turn !== p || !st.trick || !st.trick.length) return [];
+    var w = trickWinner(st.trick, st.trump);
+    var wCard = st.trick.find(function (t) { return t.p === w; }).card;
+    var leadS = st.trick[0].card.s;
+    return legalCards(st, p).filter(function (c) { return beats(c, wCard, leadS, st.trump); });
+  }
+
+  function handEval(st, p) {
+    var h = (st.hands && st.hands[p]) || [];
+    var pairs = pairsIn(h);
+    var pairPts = pairsValue(h);
+    var aces = st.settings.aceBonus && !st.aceUsed && allAces(h) ? 200 : 0;
+    var mb = st.settings.pairOver120
+      ? ((pairPts + aces) ? Math.min(300, 120 + pairPts + aces) : 120)
+      : 300;
+    var withTalon = st.phase === 'give' || st.phase === 'raise' || st.phase === 'play';
+    var est = Math.min(mb, Math.max(100, Math.floor((estimate(h, withTalon) + aces) / 5) * 5));
+    return {
+      cardPoints: points(h),
+      pairs: pairs,
+      pairPoints: pairPts,
+      acePoints: aces,
+      maxBid: mb,
+      estimate: est
+    };
+  }
+
   var API = {
     SUITS: SUITS, SUIT_SYM: SUIT_SYM, RANKS: RANKS, VAL: VAL, PAIR: PAIR, DEFAULTS: DEFAULTS,
     newGame: newGame, startDeal: startDeal, placeBid: placeBid, pass: pass,
     minBid: minBid, maxBid: maxBid, canRaise: canRaise,
     takeTalon: takeTalon, giveCard: giveCard, confirmBid: confirmBid, resign: resign,
-    legalCards: legalCards, canAnnounce: canAnnounce, playCard: playCard, collectTrick: collectTrick,
+    legalCards: legalCards, canAnnounce: canAnnounce, canAceBonus: canAceBonus, playCard: playCard, collectTrick: collectTrick,
     points: points, pairsIn: pairsIn, pairsValue: pairsValue, sortHand: sortHand,
+    dealPoints: dealPoints, winningCards: winningCards, handEval: handEval,
     aiBid: aiBid, aiGive: aiGive, aiRaise: aiRaise, aiPlay: aiPlay, estimate: estimate
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = API;

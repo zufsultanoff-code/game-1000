@@ -27,9 +27,16 @@
   function saveCfg() { localStorage.setItem(CFG_KEY, JSON.stringify(cfg)); }
   function save() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(st)); } catch (e) {} }
   function loadGame() {
-    try { var s = JSON.parse(localStorage.getItem(SAVE_KEY)); if (s && s.players) return s; } catch (e) {}
+    try {
+      var s = JSON.parse(localStorage.getItem(SAVE_KEY));
+      if (s && s.players) {
+        s.settings = Object.assign({}, E.DEFAULTS, s.settings || {});
+        return s;
+      }
+    } catch (e) {}
     return null;
   }
+  function hintsOn() { return !st || !st.settings || st.settings.hints !== false; }
   function isRed(s) { return s === 'H' || s === 'D'; }
   function sym(s) { return E.SUIT_SYM[s]; }
   function delay() { return st.settings.aiSpeed || 650; }
@@ -52,10 +59,21 @@
     box.querySelector('.name').textContent = pl.name;
     box.querySelector('.score').textContent = pl.score;
     var tags = [];
+    var inPlay = st.phase === 'play' || st.phase === 'trickDone';
+    var hints = hintsOn();
     if (pl.onBarrel) tags.push('🛢' + (3 - pl.barrelTries));
     if (pl.bolts) tags.push('⚡' + pl.bolts);
-    if (st.declarer === i && st.phase !== 'bid') tags.push('заказ ' + st.bid);
-    if (st.phase === 'play' || st.phase === 'trickDone') tags.push('взяток ' + st.tricks[i]);
+    if (st.declarer === i && st.phase !== 'bid') {
+      tags.push(inPlay && hints ? '★ ' + E.dealPoints(st, i) + '/' + st.bid : 'заказ ' + st.bid);
+    }
+    if (inPlay) {
+      if (hints) {
+        if (st.declarer !== i) tags.push(E.dealPoints(st, i) + ' очк.');
+        tags.push('вз. ' + st.tricks[i]);
+      } else {
+        tags.push('взяток ' + st.tricks[i]);
+      }
+    }
     box.querySelector('.tag').textContent = tags.join(' · ');
     var active = (st.phase === 'bid' || st.phase === 'play') && st.turn === i;
     box.classList.toggle('active', active);
@@ -74,6 +92,14 @@
     plate('#opp' + i + ' .plate', i);
   }
 
+  function addBadge(el, cls, text) {
+    var b = document.createElement('span');
+    b.className = 'card-badge ' + cls;
+    b.textContent = text;
+    el.appendChild(b);
+    return b;
+  }
+
   function renderHand() {
     var hd = $('#hand');
     hd.innerHTML = '';
@@ -82,6 +108,15 @@
     var legal = {};
     var playing = st.phase === 'play' && st.turn === 0 && !busy;
     if (playing) E.legalCards(st, 0).forEach(function (c) { legal[c.id] = 1; });
+    var hints = hintsOn();
+    var pairs = hints ? E.pairsIn(h) : [];
+    var fourAces = hints && st.settings.aceBonus && !st.aceUsed && E.SUITS.every(function (s) {
+      return h.some(function (c) { return c.s === s && c.r === 'A'; });
+    });
+    var winners = {};
+    if (hints && playing && st.trick.length > 0) {
+      E.winningCards(st, 0).forEach(function (c) { winners[c.id] = 1; });
+    }
     var n = h.length, w = hd.clientWidth;
     var cw = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--cw')) || 0;
     var probe = backEl(); hd.appendChild(probe); cw = probe.offsetWidth; hd.removeChild(probe);
@@ -93,6 +128,21 @@
       el.style.zIndex = k;
       if (playing) el.classList.add(legal[c.id] ? 'legal' : 'dim');
       if (st.phase === 'give' && st.declarer === 0) el.classList.add('legal');
+      if (hints) {
+        if ((c.r === 'K' || c.r === 'Q') && pairs.indexOf(c.s) >= 0) {
+          var ready = playing && st.trick.length === 0 && E.canAnnounce(st, 0, c);
+          addBadge(el, 'pair-badge' + (ready ? ' ready' : ''), '👑+' + E.PAIR[c.s]);
+          if (ready) el.classList.add('can-marry');
+        } else if (fourAces && c.r === 'A') {
+          var readyA = playing && st.trick.length === 0 && E.canAceBonus(st, 0, c);
+          addBadge(el, 'pair-badge' + (readyA ? ' ready' : ''), '👑+200');
+          if (readyA) el.classList.add('can-marry');
+        }
+        if (playing && winners[c.id]) {
+          el.classList.add('beats');
+          addBadge(el, 'beat-badge', '▲ Бьёт');
+        }
+      }
       if (sel === c.id) el.classList.add('sel');
       el.addEventListener('click', function () { onCard(c.id); });
       hd.appendChild(el);
@@ -117,8 +167,18 @@
 
   function renderInfo() {
     var b = $('#infoBid'), t = $('#infoTrump');
-    b.textContent = st.phase === 'bid' ? 'Торг: ' + st.bid
-      : (st.declarer >= 0 ? st.players[st.declarer].name + ': ' + st.bid : '');
+    var inPlay = (st.phase === 'play' || st.phase === 'trickDone') && st.declarer >= 0;
+    if (st.phase === 'bid') {
+      b.textContent = 'Торг: ' + st.bid;
+      b.className = '';
+    } else if (inPlay && hintsOn()) {
+      var dPts = E.dealPoints(st, st.declarer);
+      b.textContent = st.players[st.declarer].name + ': ' + dPts + ' / ' + st.bid;
+      b.className = dPts >= st.bid ? 'made' : '';
+    } else {
+      b.textContent = st.declarer >= 0 ? st.players[st.declarer].name + ': ' + st.bid : '';
+      b.className = '';
+    }
     t.textContent = st.trump ? 'Козырь ' + sym(st.trump) : '';
     t.className = st.trump && isRed(st.trump) ? 'red' : '';
   }
@@ -139,6 +199,17 @@
     return b;
   }
   function hint(text) { var d = document.createElement('div'); d.className = 'hint'; d.textContent = text; return d; }
+  function statHint(html, warn) {
+    var d = document.createElement('div');
+    d.className = 'hint hint-stat' + (warn ? ' warn' : '');
+    d.innerHTML = html;
+    return d;
+  }
+  function pairSummary(ev) {
+    var list = ev.pairs.map(function (s) { return sym(s) + '+' + E.PAIR[s]; });
+    if (ev.acePoints) list.push('4Т+' + ev.acePoints);
+    return list.length ? list.join(', ') : 'без марьяжа';
+  }
   function stepper(min, max, onOk, okLabel) {
     var p = $('#panel');
     if (bidVal < min) bidVal = min;
@@ -153,18 +224,39 @@
   function renderPanel() {
     var p = $('#panel');
     p.innerHTML = '';
-    if (busy) return;
     var ph = st.phase;
-    if (ph === 'bid' && st.turn === 0) {
-      if (E.canRaise(st, 0)) {
-        stepper(E.minBid(st), E.maxBid(st, 0), function (v) { humanBid(v); }, 'Заказ');
-      } else {
-        p.appendChild(hint('Выше ' + E.maxBid(st, 0) + ' нельзя без марьяжа'));
+    var hints = hintsOn();
+    if (busy && ph !== 'trickDone') return;
+    if (ph === 'bid') {
+      if (hints) {
+        var evB = E.handEval(st, 0);
+        p.appendChild(statHint('Сила руки: ~<b>' + evB.estimate + '</b> · Карт: <b>' + evB.cardPoints + '</b> очк. · ' + esc(pairSummary(evB)) + ' · Макс: <b>' + evB.maxBid + '</b>'));
       }
-      p.appendChild(btn('Пас', 'alt', function () { humanBid(0); }));
+      if (st.turn === 0) {
+        if (E.canRaise(st, 0)) {
+          stepper(E.minBid(st), E.maxBid(st, 0), function (v) { humanBid(v); }, 'Заказ');
+        } else {
+          p.appendChild(hint('Выше ' + E.maxBid(st, 0) + ' нельзя без марьяжа'));
+        }
+        p.appendChild(btn('Пас', 'alt', function () { humanBid(0); }));
+      }
     } else if (ph === 'prikup' && st.declarer === 0) {
+      if (hints) {
+        var evP = E.handEval(st, 0);
+        p.appendChild(statHint('На руке: карт на <b>' + evP.cardPoints + '</b> очк. · ' + esc(pairSummary(evP)) + ' · Оценка: ~<b>' + evP.estimate + '</b>'));
+      }
       p.appendChild(btn('Взять прикуп', '', function () { E.takeTalon(st); after(); }));
     } else if (ph === 'give' && st.declarer === 0) {
+      if (hints) {
+        var evG = E.handEval(st, 0);
+        p.appendChild(statHint('На руке: карт на <b>' + evG.cardPoints + '</b> очк. · ' + esc(pairSummary(evG)) + ' · Оценка: ~<b>' + evG.estimate + '</b>'));
+        if (sel) {
+          var sc = st.hands[0].find(function (c) { return c.id === sel; });
+          if (sc && (sc.r === 'K' || sc.r === 'Q') && evG.pairs.indexOf(sc.s) >= 0) {
+            p.appendChild(statHint('⚠️ Эта карта разрушит марьяж (' + sym(sc.s) + ' +' + E.PAIR[sc.s] + ')!', true));
+          }
+        }
+      }
       p.appendChild(hint(sel ? 'Кому отдать карту?' : 'Выберите карту, чтобы отдать сопернику (' + (2 - st.given) + ')'));
       [1, 2].forEach(function (i) {
         p.appendChild(btn((i === 1 ? '← ' : '') + st.players[i].name + (i === 2 ? ' →' : ''), 'alt', function () {
@@ -172,6 +264,12 @@
         }, !sel || st.givenTo[i]));
       });
     } else if (ph === 'raise' && st.declarer === 0) {
+      if (hints) {
+        var evR = E.handEval(st, 0);
+        var msgR = 'Оценка руки: ~<b>' + evR.estimate + '</b> (карт: ' + evR.cardPoints + ' очк., ' + esc(pairSummary(evR)) + ')';
+        if (st.bid > evR.estimate + 10) msgR += ' · <span class="hint-warn">⚠️ Заказ выше оценки руки</span>';
+        p.appendChild(statHint(msgR));
+      }
       var mx = st.settings.pairOver120 ? Math.max(st.bid, 120 + E.pairsValue(st.hands[0])) : 300;
       bidVal = st.bid;
       stepper(st.bid, mx, function (v) { E.confirmBid(st, v); after(); }, 'Играть');
@@ -180,8 +278,31 @@
           E.resign(st); after();
         });
       }));
-    } else if (ph === 'play' && st.turn === 0) {
-      p.appendChild(hint(st.trick.length ? 'Ваш ход' : 'Ваш ход — заходите'));
+    } else if (ph === 'play' || ph === 'trickDone') {
+      if (hints) {
+        if (st.declarer === 0) {
+          var myPts = E.dealPoints(st, 0), rem = Math.max(0, st.bid - myPts);
+          if (rem > 0) p.appendChild(statHint('Набрано в раздаче: <b>' + myPts + ' из ' + st.bid + '</b> (осталось <b>' + rem + '</b>)'));
+          else p.appendChild(statHint('Набрано в раздаче: <b>' + myPts + ' из ' + st.bid + '</b> (заказ выполнен ✓)'));
+        } else if (st.declarer > 0) {
+          var d = st.declarer, dPts = E.dealPoints(st, d), myOppPts = E.dealPoints(st, 0);
+          p.appendChild(statHint('Ваши очки: <b>' + myOppPts + '</b> · Заказчик (' + esc(st.players[d].name) + '): <b>' + dPts + ' из ' + st.bid + '</b>'));
+        }
+      }
+      if (ph === 'play' && st.turn === 0 && !busy) {
+        if (hints) {
+          if (st.trick.length === 0) {
+            var hasReady = st.hands[0].some(function (c) { return E.canAnnounce(st, 0, c) || E.canAceBonus(st, 0, c); });
+            p.appendChild(hint(hasReady ? 'Ваш ход — заходите (можно объявить марьяж 👑)' : 'Ваш ход — заходите'));
+          } else {
+            var trickPts = E.points(st.trick.map(function (t) { return t.card; }));
+            var winCount = E.winningCards(st, 0).length;
+            p.appendChild(hint('Ваш ход · Взятка: ' + trickPts + ' очк. · ' + (winCount ? 'Есть чем побить (▲)' : 'Побить нельзя')));
+          }
+        } else {
+          p.appendChild(hint(st.trick.length ? 'Ваш ход' : 'Ваш ход — заходите'));
+        }
+      }
     }
   }
 
@@ -400,6 +521,7 @@
   }
 
   var OPTS = [
+    ['hints', 'Подсказки (марьяжи, битьё, счётчик очков)'],
     ['barrel', 'Бочка на 880'],
     ['bolts', 'Болты (3 болта = −120)'],
     ['dump555', 'Самосвал на 555'],
@@ -420,7 +542,7 @@
     OPTS.forEach(function (o) {
       h += '<label class="opt">' + o[1] + ' <input type="checkbox" id="o_' + o[0] + '"' + (s[o[0]] ? ' checked' : '') + '></label>';
     });
-    h += '<p style="font-size:13px;color:#666">Правила (кроме имён и скорости) применяются со следующей новой игры.</p>';
+    h += '<p style="font-size:13px;color:#666">Правила (кроме имён, скорости и подсказок) применяются со следующей новой игры.</p>';
     h += '<div class="row"><button class="btn alt" id="mCancel">Отмена</button><button class="btn" id="mSave">Сохранить</button></div>';
     openModal(h, function (r) {
       on(r, '#mCancel', closeModal);
@@ -432,6 +554,7 @@
         if (st) {
           st.players.forEach(function (p, i) { p.name = cfg.names[i]; });
           st.settings.aiSpeed = s.aiSpeed;
+          st.settings.hints = s.hints;
           save(); render();
         }
         closeModal();
