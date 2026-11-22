@@ -69,7 +69,9 @@ public class MainActivity extends Activity {
         settings.setLoadWithOverviewMode(true);
         settings.setSupportZoom(false);
         settings.setBuiltInZoomControls(false);
+        settings.setCacheMode(WebSettings.LOAD_NO_CACHE);
 
+        webView.clearCache(true);
         webView.addJavascriptInterface(new AndroidBridge(), "AndroidBridge");
         setContentView(webView);
         webView.loadUrl("file:///android_asset/index.html");
