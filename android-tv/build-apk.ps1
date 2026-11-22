@@ -52,8 +52,8 @@ $g.TextRenderingHint = [System.Drawing.Text.TextRenderingHint]::AntiAliasGridFit
 $bgRect = New-Object System.Drawing.Rectangle 0, 0, 320, 180
 $brush = New-Object System.Drawing.Drawing2D.LinearGradientBrush(
     $bgRect,
-    [System.Drawing.Color]::FromArgb(11, 107, 60),
-    [System.Drawing.Color]::FromArgb(3, 48, 26),
+    [System.Drawing.Color]::FromArgb(7, 71, 40),
+    [System.Drawing.Color]::FromArgb(2, 26, 13),
     [System.Drawing.Drawing2D.LinearGradientMode]::Vertical
 )
 $g.FillRectangle($brush, $bgRect)

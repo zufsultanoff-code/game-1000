@@ -1,5 +1,5 @@
 /* Offline cache for the Thousand web app */
-var CACHE = 'thousand-v8';
+var CACHE = 'thousand-v9';
 var FILES = ['./', './index.html', './style.css', './engine.js', './app.js', './manifest.webmanifest',
   './icons/icon-180.png', './icons/icon-192.png', './icons/icon-512.png',
   './cards/back.jpg',

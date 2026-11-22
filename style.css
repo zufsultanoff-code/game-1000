@@ -1,8 +1,8 @@
 :root {
-  --cw: min(19vw, 82px);
+  --cw: min(23.5vw, 13.5vh, 120px);
   --ch: calc(var(--cw) * 1.42);
-  --felt: #0b6b3c;
-  --felt2: #064a29;
+  --felt: #074728;
+  --felt2: #042b17;
   --gold: #f3c84b;
   --red: #c8102e;
   --ink: #1b1b1b;
@@ -12,7 +12,7 @@ html, body { margin: 0; height: 100%; overflow: hidden; overscroll-behavior: non
 body {
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
   color: #fff;
-  background: radial-gradient(ellipse at 50% 40%, var(--felt) 0%, var(--felt2) 75%, #03301a 100%);
+  background: radial-gradient(ellipse at 50% 40%, var(--felt) 0%, var(--felt2) 70%, #021a0d 100%);
   -webkit-user-select: none; user-select: none; touch-action: manipulation;
 }
 #app {
@@ -51,11 +51,11 @@ body {
 #center { position: absolute; left: 0; right: 0; top: calc(var(--ch) * .62 + 40px); bottom: 0; }
 #talon, #trick { position: absolute; left: 50%; top: 45%; transform: translate(-50%, -50%); }
 #talon { display: flex; gap: 6px; }
-#trick { width: calc(var(--cw) * 3); height: calc(var(--ch) * 2); }
+#trick { width: calc(var(--cw) * 2.8); height: calc(var(--ch) * 1.72); }
 #trick .card { position: absolute; transition: transform .35s ease, opacity .35s ease; }
-#trick .t0 { left: calc(var(--cw) * 1); top: calc(var(--ch) * 1); }
+#trick .t0 { left: calc(var(--cw) * .9); top: calc(var(--ch) * .72); }
 #trick .t1 { left: 0; top: 0; transform: rotate(-8deg); }
-#trick .t2 { left: calc(var(--cw) * 2); top: 0; transform: rotate(8deg); }
+#trick .t2 { left: calc(var(--cw) * 1.8); top: 0; transform: rotate(8deg); }
 #trick.collect-0 .card { transform: translateY(70vh) scale(.6); opacity: 0; }
 #trick.collect-1 .card { transform: translate(-60vw, -40vh) scale(.5); opacity: 0; }
 #trick.collect-2 .card { transform: translate(60vw, -40vh) scale(.5); opacity: 0; }
@@ -172,7 +172,7 @@ table.score td.neg { color: #c62828; }
 table.score td small { display: block; font-size: 11px; color: #777; }
 table.score tr.total td { font-weight: 800; border-top: 2px solid #333; }
 .menu-list .btn { width: 100%; margin-bottom: 10px; }
-.big-title { text-align: center; font-size: 40px; font-weight: 900; margin: 6px 0 2px; color: #0b6b3c; }
+.big-title { text-align: center; font-size: 40px; font-weight: 900; margin: 6px 0 2px; color: #074728; }
 
 .btn:focus, .icon-btn:focus, .sheet input:focus, .sheet select:focus, .sheet summary:focus {
   outline: 3px solid #fff;
@@ -188,7 +188,7 @@ table.score tr.total td { font-weight: 800; border-top: 2px solid #333; }
 
 @media (orientation: landscape) and (min-width: 640px) {
   :root {
-    --cw: min(10.5vh, 8.5vw, 108px);
+    --cw: min(14.5vh, 12vw, 156px);
   }
   #topbar { padding: 8px 18px; }
   .opp { width: 27%; top: 6px; }

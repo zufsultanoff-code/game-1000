@@ -45,7 +45,7 @@ public class MainActivity extends Activity {
         applyFullscreen();
 
         webView = new WebView(this);
-        webView.setBackgroundColor(0xFF064A29);
+        webView.setBackgroundColor(0xFF042B17);
         webView.setFocusable(true);
         webView.setFocusableInTouchMode(true);
         webView.setWebChromeClient(new WebChromeClient());
